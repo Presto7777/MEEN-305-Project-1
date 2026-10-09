@@ -11,9 +11,9 @@ from dataclasses import dataclass
 class Strength:
     """Strength allowables [MPa].  'In-layer' = load path runs along the filament
     (member axis lying in the layer plane); 'interlayer' = across layer bonds."""
-    tensile_inplane: float = 50.0
-    compressive_inplane: float = 60.0
-    interlayer_tension: float = 25.0   # ~50% of in-layer: typical FDM PLA knockdown
+    tensile_inplane: float = 26.0
+    compressive_inplane: float = 45.0
+    interlayer_tension: float = 15.0   # ~50% of in-layer: typical FDM PLA knockdown
     interlayer_shear: float = 20.0
     knockdown: float = 1.0             # extra global factor (<1) for defects, joints, etc.
 
