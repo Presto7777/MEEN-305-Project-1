@@ -13,10 +13,11 @@ sweeps/ranking, Excel report, self-weight, joint/load-introduction checks.
 ## Install and run
 
     pip install -e ".[dev]"          # numpy, pytest, matplotlib (use ".[plots]" for plots only)
-    pytest                           # 41 tests
+    pytest                           # 79 tests
     python examples/run_demo.py      # layout comparison table (mass, deflection, forces)
     python examples/inspect_demo.py pratt D   # summaries, PNG overviews, CSVs
     python examples/phase3_demo.py 3          # safety factors for a 3 mm uniform section
+python examples/interactive_explorer.py   # sliders: min FS vs. mass (matplotlib window)
 
 Plotting is imported separately: `from trusskit import viz`.
 
@@ -54,12 +55,14 @@ print(failure_table(model, frs[0], top=10))
 | Module | Responsibility |
 |---|---|
 | `geometry.py` | `Node`, `Member`, `TrussModel`, validation |
-| `sections.py` | `SolidCircular`, `HollowCircular`, `Rectangular`, `HollowRectangular` |
+| `sections.py` | `SolidCircular`, `HollowCircular`, `Rectangular`, `HollowRectangular`; `SECTION_TYPES` registry and `make_section` |
 | `materials.py` | `Material`, `Strength`, PLA placeholders |
-| `layouts.py` | `LayoutParameters`, `generate_truss` (Warren / Pratt / Howe, 3D) |
+| `layouts.py` | `LayoutParameters`, `generate_truss` (Warren / Pratt / Howe / triangular, 3D) |
 | `loads.py` | `Support`, `LoadCase`, `standard_supports`, `create_load_case` |
 | `solver.py` | `solve_truss`, `AnalysisResult`, `total_mass`, solver exceptions |
 | `failure.py` | stress, buckling, print-orientation checks, envelope, design check |
+| `groups.py` | `assign_groups`: label members chord / web / brace |
+| `explorer.py` | `evaluate_design` (pure logic) and the interactive `Explorer` window |
 | `report.py` | text summaries, member tables, CSV export |
 | `viz.py` | 3D/2D plots of geometry, forces, deformation, safety factors |
 
@@ -81,7 +84,7 @@ print(failure_table(model, frs[0], top=10))
 
 ### Layouts (`layouts.py`)
 `generate_truss(LayoutParameters(span=220, height=40, depth=30, panels=4,
-layout="warren"|"pratt"|"howe", section_id="default"))` builds two vertical side
+layout="warren"|"pratt"|"howe"|"triangular", section_id="default"))` builds two vertical side
 trusses at y = ±depth/2 plus transverse members, alternating diagonal bracing in
 the top and bottom chord planes, and transverse bracing in the two end bays
 (prevents sideways racking). Output is validated before it is returned.
@@ -90,6 +93,14 @@ the top and bottom chord planes, and transverse bracing in the two end bays
 - **Pratt / Howe:** aligned stations, verticals everywhere, diagonals leaning
   toward (Pratt) or away from (Howe) mid-span. Need an **even** panel count.
   Defaults give 20 nodes, 54 members.
+- **Triangular:** one 3D truss with a triangular cross-section: two bottom chords
+  at y = ±depth/2 and one apex chord at y = 0, z = height (`depth` = bottom width,
+  `height` = apex height). A rigid triangle ring sits at every station and each of
+  the three faces (bottom, left, right) has one alternating diagonal. It is exactly
+  isostatic (members = 3·nodes − 6): 15 nodes, 39 members at defaults, any panel
+  count. Because the bottom-face diagonal is single, the layout is not mirror-symmetric,
+  so symmetric loads cause some lateral drift (~9% of vertical at defaults).
+  Loads and supports use the two bottom-chord nodes at each station.
 - Manual geometry uses the same `Node`/`Member`/`TrussModel` classes.
 
 ### Supports and loads (`loads.py`)
@@ -120,7 +131,13 @@ Built-in checks:
 Σρ·A·L in grams (ideal members only; excludes joints, supports, slicer overhead).
 
 ### Materials and sections
-- Sections give `area()`, `second_moments_of_area()`, `I_min()`, `volume(L)`.
+- Sections give `area()`, `second_moments_of_area()`, `I_min()`, `volume(L)`,
+  `describe()` and `min_feature()` (smallest wall/dimension, for printability warnings).
+  `HollowRectangular(b, h, t)` has wall thickness `t` on all four sides (inner opening
+  `(b-2t) x (h-2t)`, requires `2t <= min(b, h)`). `HollowCircular(D, d)` takes outer and
+  inner diameters. `make_section(kind, params)` builds any type from the `SECTION_TYPES`
+  registry (`"solid circular"`, `"hollow circular"` [D, t], `"rectangular"`,
+  `"hollow rectangular"`).
 - `Material(name, E, density, strength)`. `PLA_PLACEHOLDER`: E = 3500 MPa,
   1.24 g/cm³. `Strength` (generic PLA placeholders, replace with your coupon data):
 
@@ -165,6 +182,41 @@ with its mode and load case; `check_design(...)` returns a `DesignCheck`
   `plot_deformed_3d` (auto-exaggerated), `plot_safety_factors` (colored by FS),
   `inspect_model` (4-panel overview). Pass `ax=` to compose your own figures.
 
+## Interactive explorer (`explorer.py`)
+`python examples/interactive_explorer.py [--layout ...] [--orientation ...] [--span 220]`
+opens a matplotlib window. Sliders set width (y), height (z) and panels (snaps to
+4, 8, 12, 16 so condition D has quarter-point load nodes). Cross-sections are set
+**per member group**: pick a group (*edit group*: chord / web / brace), pick its
+*section type* (solid circular, hollow circular, rectangular, hollow rectangular), and
+the sliders below change to that type's parameters (e.g. width b, height h, wall t).
+Each group remembers its parameters for every type. Radio buttons also select the
+layout and print orientation.
+
+Every change re-solves conditions C and D and plots one live point of **ideal member
+mass vs. minimum safety factor** (log axis; green region = FS ≥ 1.5) with a trace of
+past settings colored by layout ("clear trace" resets it). A front view colors each
+member by its worst safety factor; a text panel lists each group's section and member
+count, the governing member/mode/case and maximum deflections, and prints a
+**PRINT WARNING** if any section feature (wall or dimension) is below 0.8 mm. Invalid
+combinations (for example wall thicker than half the section) show a message and are
+not added to the trace.
+
+Groups come from `assign_groups(model)`: *chord* runs along the span, *brace* is
+horizontal but not a chord (transverse members and chord-plane diagonals), *web* is
+everything else. Headless use:
+
+```python
+secs = {"chord": make_section("hollow rectangular", [6, 6, 1.0]),
+        "web":   make_section("hollow circular", [5, 0.8]),
+        "brace": make_section("solid circular", [2])}
+ev = evaluate_design("warren", span=220, height=40, depth=30, panels=4, sections=secs)
+print(ev.mass, ev.min_fs, ev.check)
+# or round bars only: evaluate_design(..., d_chord=5, d_web=4, d_brace=2)
+```
+
+Note: mass is ideal member volume; very thin hollow walls look light here but may
+not print reliably, and local wall buckling is not modeled.
+
 ## Changing the design
 - **Panels:** `LayoutParameters(panels=8)` (even for Pratt/Howe; multiple of 4 for condition D).
 - **Per-member sections:** members are immutable; replace them with a new
@@ -172,7 +224,7 @@ with its mode and load case; `check_design(...)` returns a `DesignCheck`
   `{section_id: CrossSection}` dict to the solver, failure check and mass.
   Nothing sizes sections automatically yet.
 
-## Tests (`tests/`, 41 total)
+## Tests (`tests/`, 79 total)
 - Geometry: 3-4-5 and 3D lengths, direction reversal, 4-panel/220 mm
   coordinates, all validation failures, bounding box.
 - Solver: axial bar (δ = PL/EA), symmetric triangle vs. method of joints,
@@ -181,6 +233,10 @@ with its mode and load case; `check_design(...)` returns a `DesignCheck`
 - Failure: Euler bar, in-layer tension, interlayer tension vs. orientation,
   45° tractions, Johnson regime, zero-force handling, FS ∝ 1/load, envelope,
   knockdown, thin-fails/thick-passes for every layout.
+- Triangular layout: counts, isostatic check, geometry, reactions, lateral drift.
+- Sections: `HollowRectangular` values and limits, registry, tube vs. solid at equal area.
+- Explorer: member grouping, mixed section types, group/type controls, `evaluate_design` vs. the manual pipeline, FS/mass
+  monotonic in diameters, GUI sliders/radios update the trace.
 - Output: plots render and CSV/report functions run.
 
 ## Known limitations
