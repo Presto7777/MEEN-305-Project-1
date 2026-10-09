@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+tests/test_geometry.py
+tests/test_solver.py
+tests/test_viz_report.py
+trusskit/__init__.py
+trusskit/geometry.py
+trusskit/layouts.py
+trusskit/loads.py
+trusskit/materials.py
+trusskit/sections.py
+trusskit/solver.py
+trusskit.egg-info/PKG-INFO
+trusskit.egg-info/SOURCES.txt
+trusskit.egg-info/dependency_links.txt
+trusskit.egg-info/requires.txt
+trusskit.egg-info/top_level.txt

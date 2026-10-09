@@ -1,0 +1,15 @@
+[project]
+name = "trusskit"
+version = "0.1.0"
+description = "3D truss geometry and direct-stiffness solver for the MEEN PLA bridge project"
+requires-python = ">=3.9"
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools]
+packages = ["trusskit"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
