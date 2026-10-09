@@ -10,3 +10,6 @@ from .report import model_summary, result_summary, member_table, export_csv
 from .materials import Strength, PLA_STRENGTH
 from .failure import (PrintOrientation, analyze_failures, envelope, check_design,
                       layer_tractions, critical_buckling_load, failure_table, failure_summary)
+
+from .groups import assign_groups
+from .explorer import evaluate_design, DesignEvaluation

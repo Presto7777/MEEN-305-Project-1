@@ -43,7 +43,7 @@ def _bridge(layout="warren", cond="C", scale=1.0):
     return model, sup, lc
 
 
-@pytest.mark.parametrize("layout", ["warren", "pratt", "howe"])
+@pytest.mark.parametrize("layout", ["warren", "pratt", "howe", "triangular"])
 @pytest.mark.parametrize("cond,total", [("C", 78.48), ("D", 156.96)])
 def test_C_equilibrium_and_reactions(layout, cond, total):
     model, sup, lc = _bridge(layout, cond)

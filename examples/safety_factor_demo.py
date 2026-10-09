@@ -11,7 +11,7 @@ d = float(sys.argv[1]) if len(sys.argv) > 1 else 3.0
 sec, mat = SolidCircular(d), PLA_PLACEHOLDER
 print(f"Uniform solid round section d = {d} mm, K = 1.0, required FS = 1.5\n")
 print(f"{'layout':8}{'orient':>8}{'min FS':>8}  {'member':>6}  {'mode':<20}{'case':<14}{'#fail':>6}")
-for layout in ("warren", "pratt", "howe"):
+for layout in ("warren", "pratt", "howe", "triangular"):
     model = generate_truss(LayoutParameters(layout=layout))
     sup = standard_supports(model)
     for orient in ("bottom", "top", "side"):

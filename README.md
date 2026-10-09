@@ -54,7 +54,7 @@ print(failure_table(model, frs[0], top=10))
 | Module | Responsibility |
 |---|---|
 | `geometry.py` | `Node`, `Member`, `TrussModel`, validation |
-| `sections.py` | `SolidCircular`, `HollowCircular`, `Rectangular` |
+| `sections.py` | `SolidCircular`, `HollowCircular`, `Rectangular`, `HollowRectangular` |
 | `materials.py` | `Material`, `Strength`, PLA placeholders |
 | `layouts.py` | `LayoutParameters`, `generate_truss` (Warren / Pratt / Howe, 3D) |
 | `loads.py` | `Support`, `LoadCase`, `standard_supports`, `create_load_case` |

@@ -1,5 +1,5 @@
 """Inspect one candidate: prints summaries and writes PNG overviews + CSVs.
-Usage: python examples/inspect_demo.py [warren|pratt|howe] [C|D]"""
+Usage: python examples/inspect_demo.py [warren|pratt|howe|triangular] [C|D]"""
 import sys
 import matplotlib
 matplotlib.use("Agg")           # remove this line to get interactive windows

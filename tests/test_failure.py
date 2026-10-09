@@ -97,7 +97,7 @@ def _check(layout, d, orientation="bottom"):
     return check_design(frs), frs, model
 
 
-@pytest.mark.parametrize("layout", ["warren", "pratt", "howe"])
+@pytest.mark.parametrize("layout", ["warren", "pratt", "howe", "triangular"])
 def test_thin_fails_thick_passes(layout):
     thin, _, _ = _check(layout, 3.0)
     thick, _, _ = _check(layout, 8.0)

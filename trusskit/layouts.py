@@ -9,6 +9,11 @@ Warren : top nodes staggered at panel mid-points (true triangulated web).
 Pratt / Howe : aligned top/bottom stations, verticals at every station,
                diagonals leaning toward (Pratt) or away from (Howe) mid-span.
                Require an even panel count.
+Triangular   : single 3D truss with a triangular cross-section: two bottom chords
+               (y = -depth/2, +depth/2, z = 0) and one apex chord (y = 0, z = height).
+               A rigid triangle ring at every station and one alternating diagonal
+               in each of the three faces; exactly isostatic (members = 3*nodes - 6).
+               `depth` = bottom width, `height` = apex height.
 """
 from dataclasses import dataclass
 from .geometry import Node, Member, TrussModel
@@ -19,7 +24,7 @@ class LayoutParameters:
     span: float = 220.0
     height: float = 40.0
     depth: float = 30.0
-    panels: int = 8
+    panels: int = 4
     layout: str = "warren"
     section_id: str = "default"
 
@@ -27,12 +32,14 @@ class LayoutParameters:
 def generate_truss(p: LayoutParameters) -> TrussModel:
     layout = p.layout.lower()
     n = p.panels
-    if layout not in ("warren", "pratt", "howe"):
+    if layout not in ("warren", "pratt", "howe", "triangular"):
         raise ValueError(f"unknown layout '{p.layout}'")
     if n < 2:
         raise ValueError("need at least 2 panels")
     if layout in ("pratt", "howe") and n % 2:
         raise ValueError("Pratt/Howe layouts need an even number of panels")
+    if layout == "triangular":
+        return _generate_triangular(p)
 
     xb = [p.span * i / n for i in range(n + 1)]
     xt = [p.span * (i + 0.5) / n for i in range(n)] if layout == "warren" else list(xb)
@@ -95,6 +102,45 @@ def generate_truss(p: LayoutParameters) -> TrussModel:
     members = {i: Member(i, a, b, p.section_id) for i, (a, b) in enumerate(edges)}
     model = TrussModel(nodes, members,
                        name=f"{layout}_n{n}_h{p.height:g}_d{p.depth:g}")
+    errors, _ = model.validate()
+    if errors:
+        raise ValueError("generated invalid truss: " + "; ".join(errors))
+    return model
+
+
+def _generate_triangular(p: LayoutParameters) -> TrussModel:
+    """Triangular-section truss: chords L, R (bottom) and T (apex) at aligned stations."""
+    n = p.panels
+    xs = [p.span * i / n for i in range(n + 1)]
+    pos = {"L": (-p.depth / 2.0, 0.0), "R": (p.depth / 2.0, 0.0), "T": (0.0, p.height)}
+
+    nodes, key_id = {}, {}
+    for i, x in enumerate(xs):
+        for c, (y, z) in pos.items():
+            nid = len(nodes)
+            nodes[nid] = Node(nid, x, y, z)
+            key_id[(c, i)] = nid
+
+    edges = []
+
+    def e(a, b):
+        edges.append((key_id[a], key_id[b]))
+
+    for i in range(n + 1):                      # rigid triangle at every station
+        e(("L", i), ("R", i)); e(("L", i), ("T", i)); e(("R", i), ("T", i))
+    for i in range(n):
+        for c in "LRT":                         # chords
+            e((c, i), (c, i + 1))
+        # one alternating diagonal in each face (bottom, left, right) -> zigzag
+        for a, b in (("L", "R"), ("L", "T"), ("R", "T")):
+            if i % 2 == 0:
+                e((a, i), (b, i + 1))
+            else:
+                e((b, i), (a, i + 1))
+
+    members = {i: Member(i, a, b, p.section_id) for i, (a, b) in enumerate(edges)}
+    model = TrussModel(nodes, members,
+                       name=f"triangular_n{n}_h{p.height:g}_d{p.depth:g}")
     errors, _ = model.validate()
     if errors:
         raise ValueError("generated invalid truss: " + "; ".join(errors))
