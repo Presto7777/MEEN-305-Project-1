@@ -167,3 +167,50 @@ def inspect_model(model, result=None, supports=None, load_case=None, path=None, 
     if show:
         plt.show()
     return fig
+
+
+def _fs_color(fs, req):
+    if fs == float("inf"):
+        return NEUTRAL, 0.8
+    if fs < 1.0:
+        return "#7b241c", 3.2
+    if fs < req:
+        return "#e74c3c", 3.0
+    if fs < 2 * req:
+        return "#f1c40f", 2.4
+    return "#27ae60", 1.8
+
+
+def plot_safety_factors(model, fs_by_member, fs_required=1.5, view="3d", ax=None, title=None):
+    """Color members by safety factor: dark red <1, red <required, yellow <2x, green OK.
+    fs_by_member: {member_id: FS or EnvelopeEntry or MemberFailure}."""
+    def val(x):
+        return getattr(x, "fs", getattr(x, "governing_fs", x))
+    segs = _segments(model)
+    P = np.array([n.position() for n in model.nodes.values()])
+    if view == "3d":
+        ax = _axes(ax, True)
+        for mid, (a, b) in segs.items():
+            c, w = _fs_color(val(fs_by_member[mid]), fs_required)
+            ax.plot(*zip(a, b), color=c, lw=w)
+        _equal_3d(ax, P)
+        ax.view_init(elev=22, azim=-62)
+    else:
+        i, j, xl, yl = _VIEWS[view]
+        if ax is None:
+            _, ax = plt.subplots(figsize=(8, 3.5))
+        for mid, (a, b) in segs.items():
+            c, w = _fs_color(val(fs_by_member[mid]), fs_required)
+            ax.plot([a[i], b[i]], [a[j], b[j]], color=c, lw=w)
+            if val(fs_by_member[mid]) < fs_required:
+                mp = (a + b) / 2
+                ax.annotate(f"{mid}", (mp[i], mp[j]), fontsize=7, ha="center")
+        ax.set_aspect("equal"); ax.set_xlabel(xl); ax.set_ylabel(yl); ax.grid(alpha=0.25)
+    ax.set_title(title or f"Safety factor (required {fs_required})")
+    ax.legend(handles=[Line2D([], [], color="#7b241c", label="FS < 1"),
+                       Line2D([], [], color="#e74c3c", label=f"FS < {fs_required}"),
+                       Line2D([], [], color="#f1c40f", label=f"FS < {2 * fs_required:g}"),
+                       Line2D([], [], color="#27ae60", label="OK"),
+                       Line2D([], [], color=NEUTRAL, label="no force")],
+              loc="upper left", fontsize=7)
+    return ax

@@ -7,3 +7,6 @@ from .solver import (solve_truss, total_mass, AnalysisResult,
                      UnstableStructureError, EquilibriumError)
 from .report import model_summary, result_summary, member_table, export_csv
 # plotting is imported lazily: `from trusskit import viz`
+from .materials import Strength, PLA_STRENGTH
+from .failure import (PrintOrientation, analyze_failures, envelope, check_design,
+                      layer_tractions, critical_buckling_load, failure_table, failure_summary)

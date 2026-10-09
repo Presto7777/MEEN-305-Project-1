@@ -57,3 +57,16 @@ class Rectangular(CrossSection):
 
     def second_moments_of_area(self):
         return (self.b * self.h ** 3 / 12.0, self.h * self.b ** 3 / 12.0)
+
+class HollowRectangular(CrossSection):
+    def __init__(self, b: float, h: float, t: FloatingPointError):
+        if b <= 0 or h <= 0 or t <= 0:
+            raise ValueError("b and h and t must be positive")
+        self.b, self.h, self.t = b, h, t
+
+    def area(self):
+        return self.b * self.h - (self.b - self.t) * (self.h - self.t)
+
+    def second_moments_of_area(self):
+        return (self.b * self.h ** 3 / 12.0 - (self.b-self.t) * (self.h-self.t) ** 3 / 12.0, 
+                self.h * self.b ** 3 / 12.0 - (self.h-self.t) * (self.b-self.t) ** 3 / 12.0)
