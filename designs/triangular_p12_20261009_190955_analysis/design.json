@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "name": "",
+  "notes": "",
+  "layout": "triangular",
+  "span": 220.0,
+  "height": 22.0,
+  "depth": 13.0,
+  "panels": 12,
+  "orientation": "bottom",
+  "K": 1.0,
+  "fs_required": 1.5,
+  "mass_kg": 8.0,
+  "sections": {
+    "chord": {
+      "kind": "hollow rectangular",
+      "params": [
+        4.0,
+        4.0,
+        0.8
+      ]
+    },
+    "web": {
+      "kind": "hollow circular",
+      "params": [
+        3.0,
+        0.8
+      ]
+    },
+    "brace": {
+      "kind": "hollow circular",
+      "params": [
+        2.0,
+        0.5
+      ]
+    }
+  },
+  "material": {
+    "name": "PLA (generic placeholder)",
+    "E": 3500.0,
+    "density": 0.00124,
+    "strength": {
+      "tensile_inplane": 26.0,
+      "compressive_inplane": 45.0,
+      "interlayer_tension": 15.0,
+      "interlayer_shear": 20.0,
+      "knockdown": 1.0
+    }
+  },
+  "results": {
+    "mass_g": 18.583636059561307,
+    "min_fs": 2.203931917626577,
+    "passes": true,
+    "governing_member": 28,
+    "governing_mode": "interlayer tension",
+    "governing_case": "Condition D",
+    "n_members_below_required": 0,
+    "max_uz_mm": {
+      "C": 1.8736373399844997,
+      "D": 2.4145688769923694
+    },
+    "max_uy_mm": {
+      "C": 0.058973822401671865,
+      "D": 0.07076858688210107
+    },
+    "n_nodes": 39,
+    "n_members": 111,
+    "group_counts": {
+      "chord": 36,
+      "web": 50,
+      "brace": 25
+    },
+    "section_desc": {
+      "chord": "rect tube 4.0x4.0, wall 0.80",
+      "web": "tube \u00d83.0, wall 0.80",
+      "brace": "tube \u00d82.0, wall 0.50"
+    }
+  }
+}

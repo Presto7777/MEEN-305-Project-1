@@ -13,11 +13,13 @@ sweeps/ranking, Excel report, self-weight, joint/load-introduction checks.
 ## Install and run
 
     pip install -e ".[dev]"          # numpy, pytest, matplotlib (use ".[plots]" for plots only)
-    pytest                           # 79 tests
+    pytest                           # 90 tests
     python examples/run_demo.py      # layout comparison table (mass, deflection, forces)
     python examples/inspect_demo.py pratt D   # summaries, PNG overviews, CSVs
     python examples/phase3_demo.py 3          # safety factors for a 3 mm uniform section
 python examples/interactive_explorer.py   # sliders: min FS vs. mass (matplotlib window)
+python examples/analyze_design.py designs/<saved>.json   # reload a saved design: plots, CSVs, sensitivity
+python examples/compare_designs.py designs/*.json         # table + mass-vs-FS plot of saved designs
 
 Plotting is imported separately: `from trusskit import viz`.
 
@@ -62,7 +64,9 @@ print(failure_table(model, frs[0], top=10))
 | `solver.py` | `solve_truss`, `AnalysisResult`, `total_mass`, solver exceptions |
 | `failure.py` | stress, buckling, print-orientation checks, envelope, design check |
 | `groups.py` | `assign_groups`: label members chord / web / brace |
-| `explorer.py` | `evaluate_design` (pure logic) and the interactive `Explorer` window |
+| `design.py` | `DesignSpec` (JSON save/load), `evaluate_design`, `DesignEvaluation` |
+| `explorer.py` | the interactive `Explorer` window |
+| `design_report.py` | `analyze_design` and `compare_designs` for saved designs |
 | `report.py` | text summaries, member tables, CSV export |
 | `viz.py` | 3D/2D plots of geometry, forces, deformation, safety factors |
 
@@ -217,6 +221,36 @@ print(ev.mass, ev.min_fs, ev.check)
 Note: mass is ideal member volume; very thin hollow walls look light here but may
 not print reliably, and local wall buckling is not modeled.
 
+## Saving, reloading and analyzing designs
+In the explorer, **save design** writes the current design to `designs/<layout>_p<panels>_<timestamp>.json`
+and **save trace** writes every point on the plot to `designs/trace_<timestamp>.json` plus a `.csv`
+summary (change the folder with `--designs-dir`). The file is a `DesignSpec`: layout, span, height,
+width, panels, per-group section type and parameters, print orientation, K, required FS, load mass and
+material strengths, plus an informational `results` block (mass, min FS, governing member, deflections)
+that is ignored on load. Because everything needed to rebuild the design is stored, results are
+reproducible.
+
+    python examples/interactive_explorer.py --load designs/x.json   # continue editing (panels snap to 4)
+    python examples/analyze_design.py designs/x.json [--K 0.7 1.0 1.5] [--out DIR]
+    python examples/compare_designs.py designs/a.json designs/b.json [--trace designs/trace_*.json]
+
+`analyze_design` writes into `<design>_analysis/`: `summary.txt` (model/result summaries, failure tables,
+design check, **load margin** = mass at which FS reaches the requirement, and a **sensitivity table** over
+print orientation x K and a strength knockdown), `overview_C/D.png`, `deformed_C/D.png`,
+`safety_factors.png`, `results_C/D_nodes.csv` and `_members.csv`, and a copy of `design.json`.
+`compare_designs` prints a table and saves a mass-vs-min-FS scatter plot.
+
+In Python:
+
+```python
+spec = DesignSpec.load("designs/x.json")
+ev = spec.evaluate()                      # DesignEvaluation: model, sections, results, failures, envelope
+ev.results["C"], ev.failures["D"]         # AnalysisResult / FailureResult per load condition
+spec.height = 55; spec.save("designs/x_taller.json")          # edit and re-save
+from dataclasses import replace
+replace(spec, orientation="side", K=0.7).evaluate().min_fs     # what-if variants
+```
+
 ## Changing the design
 - **Panels:** `LayoutParameters(panels=8)` (even for Pratt/Howe; multiple of 4 for condition D).
 - **Per-member sections:** members are immutable; replace them with a new
@@ -224,7 +258,7 @@ not print reliably, and local wall buckling is not modeled.
   `{section_id: CrossSection}` dict to the solver, failure check and mass.
   Nothing sizes sections automatically yet.
 
-## Tests (`tests/`, 79 total)
+## Tests (`tests/`, 90 total)
 - Geometry: 3-4-5 and 3D lengths, direction reversal, 4-panel/220 mm
   coordinates, all validation failures, bounding box.
 - Solver: axial bar (δ = PL/EA), symmetric triangle vs. method of joints,
@@ -235,6 +269,8 @@ not print reliably, and local wall buckling is not modeled.
   knockdown, thin-fails/thick-passes for every layout.
 - Triangular layout: counts, isostatic check, geometry, reactions, lateral drift.
 - Sections: `HollowRectangular` values and limits, registry, tube vs. solid at equal area.
+- Designs: JSON round-trip, results block ignored on load, explorer save/load/trace export,
+  analysis report files, design comparison.
 - Explorer: member grouping, mixed section types, group/type controls, `evaluate_design` vs. the manual pipeline, FS/mass
   monotonic in diameters, GUI sliders/radios update the trace.
 - Output: plots render and CSV/report functions run.

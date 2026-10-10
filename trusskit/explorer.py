@@ -2,97 +2,41 @@
 
     python -m trusskit.explorer                 # or: python examples/interactive_explorer.py
 
-evaluate_design() is pure logic (no matplotlib); Explorer adds the matplotlib GUI.
 Each member group (chord / web / brace) has its own section TYPE and parameters.
+Designs can be saved to JSON (DesignSpec) and reloaded (--load, Explorer.load_spec).
 """
-from dataclasses import dataclass
+import csv
+import json
 import numpy as np
-from .layouts import LayoutParameters, generate_truss
-from .groups import assign_groups, GROUPS
-from .sections import SolidCircular, SECTION_TYPES, make_section
+from .groups import GROUPS
+from .sections import SECTION_TYPES
 from .materials import PLA_PLACEHOLDER
-from .loads import standard_supports, create_load_case
-from .solver import solve_truss, total_mass, UnstableStructureError, EquilibriumError
-from .failure import analyze_failures, envelope, check_design
-
-LAYOUTS = ("warren", "pratt", "howe", "triangular")
-ORIENTATIONS = ("bottom", "top", "side")
-GROUP_BASE_SIZE = {"chord": 4.0, "web": 3.0, "brace": 2.0}   # nominal size for default sections
-
-
-@dataclass
-class DesignEvaluation:
-    layout: str
-    orientation: str
-    panels: int
-    section_desc: dict       # group -> text description of its section
-    min_features: dict       # group -> smallest wall/dimension [mm]
-    group_counts: dict
-    model: object
-    sections: dict           # group -> CrossSection
-    mass: float              # g (ideal members)
-    check: object            # DesignCheck (min FS over C and D)
-    envelope: dict           # member -> EnvelopeEntry
-    max_uz: dict             # {"C": mm, "D": mm}
-    max_uy: dict
-    fs_required: float
-
-    @property
-    def min_fs(self):
-        return self.check.min_fs
-
-
-def evaluate_design(layout, span, height, depth, panels, d_chord=None, d_web=None, d_brace=None,
-                    orientation="bottom", K=1.0, material=PLA_PLACEHOLDER,
-                    fs_required=1.5, mass_kg=8.0, sections=None) -> DesignEvaluation:
-    """Generate, size, solve C and D, and check safety factors.
-
-    Sizing: either give round diameters d_chord/d_web/d_brace, or pass
-    sections={"chord": CrossSection, "web": ..., "brace": ...} (takes precedence).
-    """
-    model = assign_groups(generate_truss(LayoutParameters(
-        span=span, height=height, depth=depth, panels=int(panels), layout=layout)))
-    if sections is None:
-        if None in (d_chord, d_web, d_brace):
-            raise ValueError("give d_chord, d_web, d_brace or a sections dict")
-        sections = {"chord": SolidCircular(d_chord), "web": SolidCircular(d_web),
-                    "brace": SolidCircular(d_brace)}
-    missing = [g for g in GROUPS if g not in sections]
-    if missing:
-        raise ValueError(f"sections missing for groups {missing}")
-    sup = standard_supports(model)
-    frs, uz, uy = [], {}, {}
-    for cond in "CD":
-        res = solve_truss(model, sup, create_load_case(model, cond, sup, mass_kg),
-                          sections, material)
-        frs.append(analyze_failures(model, res, sections, material, orientation, K, fs_required))
-        uz[cond], uy[cond] = res.max_vertical_displacement(), res.max_lateral_displacement()
-    counts = {g: sum(1 for m in model.members.values() if m.section_id == g) for g in GROUPS}
-    return DesignEvaluation(
-        layout, orientation, int(panels),
-        {g: sections[g].describe() for g in GROUPS},
-        {g: sections[g].min_feature() for g in GROUPS},
-        counts, model, sections, total_mass(model, sections, material),
-        check_design(frs, fs_required), envelope(frs), uz, uy, fs_required)
+from .solver import UnstableStructureError, EquilibriumError
+from .design import (DesignSpec, DesignEvaluation, evaluate_design, timestamped_path,  # noqa: F401
+                     LAYOUTS, ORIENTATIONS, GROUP_BASE_SIZE, SCHEMA)
 
 
 class Explorer:
     """Matplotlib window.  Geometry sliders (width, height, panels), then choose a member
     group, its section type and that type's parameters.  One live point (mass vs min FS)
-    plus a trace of every previous setting."""
+    plus a trace of every previous setting.  'save design' / 'save trace' write JSON
+    (and CSV for the trace) into `designs_dir`; `spec=` / load_spec() restores a design."""
 
     COLORS = {"warren": "#2471a3", "pratt": "#e67e22", "howe": "#8e44ad",
               "triangular": "#16a085"}
 
     def __init__(self, span=220.0, layout="warren", orientation="bottom", K=1.0,
                  fs_required=1.5, material=PLA_PLACEHOLDER, max_trace=300,
-                 min_feature_mm=0.8):
+                 min_feature_mm=0.8, spec=None, designs_dir="designs"):
         import matplotlib.pyplot as plt
         from matplotlib.widgets import Slider, RadioButtons, Button
         self.plt, self._Slider = plt, Slider
         self.span, self.K, self.fs_req, self.material = span, K, fs_required, material
         self.max_trace, self.min_feature_mm = max_trace, min_feature_mm
-        self.trace, self.current, self._busy = [], None, False
+        self.designs_dir = designs_dir
+        self.trace, self.current, self.current_spec = [], None, None
+        self._busy = False       # ignore radio callbacks fired by programmatic set_active
+        self._suspend = False    # skip re-evaluation during bulk changes
 
         # per-group section state: chosen kind + remembered parameters for every kind
         self.spec = {g: {"kind": "solid circular",
@@ -101,8 +45,8 @@ class Explorer:
         self.edit_group = "chord"
 
         self.fig = plt.figure(figsize=(14, 9.5))
-        self.fig.suptitle(f"Truss explorer  |  span {span:g} mm, K = {K:g}, "
-                          f"loads C and D (8 kg)", fontsize=12)
+        self.title = self.fig.suptitle("", fontsize=12)
+        self._set_title()
         self.ax_main = self.fig.add_axes([0.07, 0.50, 0.42, 0.42])
         self.ax_view = self.fig.add_axes([0.55, 0.64, 0.41, 0.28])
         self.ax_info = self.fig.add_axes([0.55, 0.40, 0.41, 0.22]); self.ax_info.axis("off")
@@ -118,6 +62,7 @@ class Explorer:
             self._hide_marker(self.sliders[key])
 
         self.txt_section = self.fig.text(0.07, 0.225, "", fontsize=10, weight="bold")
+        self.txt_status = self.fig.text(0.07, 0.035, "", fontsize=8.5, color="#1f618d")
         self.param_sliders = []
 
         ax = self.fig.add_axes([0.55, 0.24, 0.13, 0.13]); ax.set_title("layout", fontsize=9)
@@ -129,19 +74,33 @@ class Explorer:
         types = tuple(SECTION_TYPES)
         ax = self.fig.add_axes([0.55, 0.05, 0.22, 0.14]); ax.set_title("section type (edited group)", fontsize=9)
         self.radio_type = RadioButtons(ax, types, active=0)
-        ax = self.fig.add_axes([0.82, 0.05, 0.10, 0.05])
-        self.btn_clear = Button(ax, "clear trace")
+        ax = self.fig.add_axes([0.82, 0.19, 0.12, 0.05]); self.btn_save = Button(ax, "save design")
+        ax = self.fig.add_axes([0.82, 0.12, 0.12, 0.05]); self.btn_save_trace = Button(ax, "save trace")
+        ax = self.fig.add_axes([0.82, 0.05, 0.12, 0.05]); self.btn_clear = Button(ax, "clear trace")
 
         self.radio_layout.on_clicked(self.update)
         self.radio_orient.on_clicked(self.update)
         self.radio_group.on_clicked(self._group_changed)
         self.radio_type.on_clicked(self._type_changed)
+        self.btn_save.on_clicked(self.save_design)
+        self.btn_save_trace.on_clicked(self.save_trace)
         self.btn_clear.on_clicked(self.clear_trace)
         self.fig.text(0.07, 0.012, "Panels snap to multiples of 4 (condition D needs load nodes at the "
                       "quarter points). Pratt/Howe need even panel counts. Hollow walls t apply on all "
                       "sides (2t <= smallest outer dimension).", fontsize=8, color="#555")
         self._build_param_sliders()
-        self.update()
+        if spec is not None:
+            self.load_spec(spec)
+        else:
+            self.update()
+
+    def _set_title(self):
+        self.title.set_text(f"Truss explorer  |  span {self.span:g} mm, K = {self.K:g}, "
+                            f"loads C and D")
+
+    def _status(self, msg, color="#1f618d"):
+        self.txt_status.set_text(msg); self.txt_status.set_color(color)
+        self.fig.canvas.draw_idle()
 
     # ------------------------------------------------------------------ section controls
     @staticmethod
@@ -173,14 +132,19 @@ class Explorer:
         self.update()
 
     def _group_changed(self, label):
+        if self._busy:
+            return
         self.edit_group = label
-        self._busy = True
-        try:
-            self.radio_type.set_active(list(SECTION_TYPES).index(self.spec[label]["kind"]))
-        finally:
-            self._busy = False
+        self._sync_type_radio()
         self._build_param_sliders()
         self.fig.canvas.draw_idle()
+
+    def _sync_type_radio(self):
+        self._busy = True
+        try:
+            self.radio_type.set_active(list(SECTION_TYPES).index(self.spec[self.edit_group]["kind"]))
+        finally:
+            self._busy = False
 
     def _type_changed(self, label):
         if self._busy:
@@ -189,33 +153,107 @@ class Explorer:
         self._build_param_sliders()
         self.update()
 
-    def current_sections(self):
-        return {g: make_section(self.spec[g]["kind"], self.spec[g]["params"][self.spec[g]["kind"]])
-                for g in GROUPS}
+    # ------------------------------------------------------------------ spec in / out
+    def current_design_spec(self) -> DesignSpec:
+        s = self.sliders
+        return DesignSpec(
+            layout=self.radio_layout.value_selected, span=self.span,
+            height=float(s["height"].val), depth=float(s["depth"].val),
+            panels=int(round(s["panels"].val)),
+            sections={g: {"kind": self.spec[g]["kind"],
+                          "params": [float(x) for x in self.spec[g]["params"][self.spec[g]["kind"]]]}
+                      for g in GROUPS},
+            orientation=self.radio_orient.value_selected, K=self.K,
+            fs_required=self.fs_req, material=self.material)
+
+    def load_spec(self, spec: DesignSpec):
+        """Restore a saved design into the sliders/radios (panels snap to 4, 8, 12, 16)."""
+        self.span, self.K, self.fs_req, self.material = spec.span, spec.K, spec.fs_required, spec.material
+        self._set_title()
+        snapped = int(min(16, max(4, 4 * round(spec.panels / 4))))
+        self._suspend = True
+        try:
+            self.sliders["depth"].set_val(spec.depth)
+            self.sliders["height"].set_val(spec.height)
+            self.sliders["panels"].set_val(snapped)
+            self.radio_layout.set_active(LAYOUTS.index(spec.layout))
+            self.radio_orient.set_active(ORIENTATIONS.index(spec.orientation))
+            for g in GROUPS:
+                kind = spec.sections[g]["kind"]
+                self.spec[g]["kind"] = kind
+                self.spec[g]["params"][kind] = [float(x) for x in spec.sections[g]["params"]]
+            self.edit_group = "chord"
+            self._busy = True
+            try:
+                self.radio_group.set_active(0)
+            finally:
+                self._busy = False
+            self._sync_type_radio()
+            self._build_param_sliders()
+        finally:
+            self._suspend = False
+        self.update()
+        if snapped != spec.panels:
+            self._status(f"loaded '{spec.name or 'design'}' (panels {spec.panels} -> {snapped}: "
+                         f"explorer snaps to multiples of 4)", "#b9770e")
+        else:
+            self._status(f"loaded '{spec.name or 'design'}'")
+
+    def save_design(self, _=None):
+        """Write the CURRENT design (+ its results summary) to designs_dir as JSON."""
+        if self.current is None:
+            self._status("nothing to save yet", "#a93226"); return None
+        sp = self.current_spec
+        path = timestamped_path(self.designs_dir, f"{sp.layout}_p{sp.panels}")
+        sp.save(path, self.current)
+        self._status(f"saved design -> {path}")
+        return path
+
+    def save_trace(self, _=None):
+        """Write every traced design to designs_dir as one JSON list plus a CSV summary."""
+        if not self.trace:
+            self._status("trace is empty", "#a93226"); return None
+        path = timestamped_path(self.designs_dir, "trace")
+        entries = []
+        for i, (_, _, _, sp, summ) in enumerate(self.trace):
+            d = sp.to_dict(); d["index"] = i; d["results"] = summ
+            entries.append(d)
+        with open(path, "w") as fh:
+            json.dump({"schema": SCHEMA, "designs": entries}, fh, indent=2)
+        csv_path = path[:-5] + ".csv"
+        with open(csv_path, "w", newline="") as fh:
+            w = csv.writer(fh)
+            w.writerow(["index", "layout", "panels", "height", "depth", "orientation", "chord",
+                        "web", "brace", "mass_g", "min_fs", "passes", "governing_member",
+                        "governing_mode", "governing_case"])
+            for i, (_, _, _, sp, sm) in enumerate(self.trace):
+                w.writerow([i, sp.layout, sp.panels, sp.height, sp.depth, sp.orientation,
+                            sm["section_desc"]["chord"], sm["section_desc"]["web"],
+                            sm["section_desc"]["brace"], f"{sm['mass_g']:.4f}",
+                            f"{sm['min_fs']:.4f}", sm["passes"], sm["governing_member"],
+                            sm["governing_mode"], sm["governing_case"]])
+        self._status(f"saved {len(entries)} designs -> {path} (+ .csv)")
+        return path
 
     # ------------------------------------------------------------------ evaluation
-    def evaluate(self):
-        s = self.sliders
-        return evaluate_design(self.radio_layout.value_selected, self.span, s["height"].val,
-                               s["depth"].val, s["panels"].val,
-                               orientation=self.radio_orient.value_selected, K=self.K,
-                               material=self.material, fs_required=self.fs_req,
-                               sections=self.current_sections())
-
     def update(self, _=None):
+        if self._suspend:
+            return
         try:
-            ev = self.evaluate()
+            sp = self.current_design_spec()
+            ev = sp.evaluate()
         except (ValueError, UnstableStructureError, EquilibriumError) as exc:
             self._draw_error(str(exc)); return
-        self.current = ev
-        self.trace.append((ev.mass, ev.min_fs, ev.layout))
+        self.current, self.current_spec = ev, sp
+        self.trace.append((ev.mass, ev.min_fs, ev.layout, sp, ev.summary()))
         self.trace = self.trace[-self.max_trace:]
         self._draw(ev)
 
     def clear_trace(self, _=None):
         self.trace = []
         if self.current is not None:
-            self.trace.append((self.current.mass, self.current.min_fs, self.current.layout))
+            self.trace.append((self.current.mass, self.current.min_fs, self.current.layout,
+                               self.current_spec, self.current.summary()))
             self._draw(self.current)
 
     # ------------------------------------------------------------------ drawing

@@ -1,0 +1,83 @@
+Design: (unnamed)   layout warren, span 220, height 22, width 10, panels 8
+orientation bottom, K 1, required FS 1.5, load 8 kg per condition
+  chord x30  rect tube 4.0x4.0, wall 0.80
+  web   x36  tube Ø3.0, wall 0.75
+  brace x32  tube Ø1.5, wall 0.50
+
+Model: warren_n8_h22_d10
+  nodes: 34   members: 98   components: 1
+  bounding box [mm]: x 0.0..220.0, y -5.0..5.0, z 0.0..22.0
+  member length [mm]: min 10.00  max 29.26  total 2375.3
+  DOFs: 102
+  ideal member mass: 17.85 g (PLA (generic placeholder))
+  validation: 0 errors, 0 warnings
+
+Result: Condition C
+  max tension     : member   4     +85.85 N
+  max compression : member  42     -98.09 N
+  near-zero members: 13 of 98
+  max downward uz : node  21    -1.3009 mm
+  max lateral |uy|: node  12   +0.10512 mm
+  sum of reactions Rz: 78.4800 N
+  equilibrium residuals: force 2.65e-12 N, moment 1.12e-11 N*mm
+  stiffness ratio lambda_min/lambda_max: 7.86e-06
+
+Failure check: Condition C (bottom, K=1.0)
+  minimum FS 3.10 at member 4 (tension)
+  members below FS 1.5: 0 of 98
+  governing modes: buckling: 41, interlayer tension: 16, tension: 28
+
+Condition C | orientation: bottom | K = 1.0 | required FS = 1.5
+  id     F[N]   sigma   KL/r       state     FS           governing  status
+   4    85.85    8.38   20.4     tension   3.10             tension  ok
+  35    85.85    8.38   20.4     tension   3.10             tension  ok
+  34    85.83    8.38   20.4     tension   3.10             tension  ok
+   3    85.83    8.38   20.4     tension   3.10             tension  ok
+  42   -98.09   -9.58   20.4 compression   4.06            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  11   -98.09   -9.58   20.4 compression   4.06            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  33    61.32    5.99   20.4     tension   4.34             tension  ok
+   2    61.32    5.99   20.4     tension   4.34             tension  ok
+   5    61.31    5.99   20.4     tension   4.34             tension  ok
+  36    61.30    5.99   20.4     tension   4.34             tension  ok
+
+Result: Condition D
+  max tension     : member  33     +98.12 N
+  max compression : member  41     -98.12 N
+  near-zero members: 13 of 98
+  max downward uz : node  21    -1.6615 mm
+  max lateral |uy|: node  14   +0.10882 mm
+  sum of reactions Rz: 156.9600 N
+  equilibrium residuals: force 3.95e-12 N, moment 1.84e-11 N*mm
+  stiffness ratio lambda_min/lambda_max: 7.86e-06
+
+Failure check: Condition D (bottom, K=1.0)
+  minimum FS 2.39 at member 47 (interlayer tension)
+  members below FS 1.5: 0 of 98
+  governing modes: buckling: 41, interlayer tension: 16, tension: 28
+
+Condition D | orientation: bottom | K = 1.0 | required FS = 1.5
+  id     F[N]   sigma   KL/r       state     FS           governing  status
+  47    46.30    8.73   30.9     tension   2.39  interlayer tension  ok
+  49    46.30    8.73   30.9     tension   2.39  interlayer tension  ok
+  27    46.30    8.73   30.9     tension   2.39  interlayer tension  ok
+  29    46.30    8.73   30.9     tension   2.39  interlayer tension  ok
+  18    46.24    8.72   30.9     tension   2.39  interlayer tension  ok
+  16    46.24    8.72   30.9     tension   2.39  interlayer tension  ok
+  58    46.24    8.72   30.9     tension   2.39  interlayer tension  ok
+  60    46.24    8.72   30.9     tension   2.39  interlayer tension  ok
+  33    98.12    9.58   20.4     tension   2.71             tension  ok
+   4    98.12    9.58   20.4     tension   2.71             tension  ok
+
+PASS: min FS = 2.39 (required 1.5) member 47, interlayer tension, Condition D; 0 member(s) below requirement
+
+Load margin: because the model is linear, FS scales as 1/load, so this design meets FS 1.5 up to about 12.7 kg per load point (analysed: 8 kg).
+
+Sensitivity of minimum FS (over C and D):
+  print orientation x effective-length factor K
+  orientation K=0.7    K=1      K=1.5    
+  bottom      2.39     2.39     1.84     
+  top         2.39     2.39     1.84     
+  side        2.71     2.71     1.84     
+  strength knockdown (all strengths x factor)
+  1        0.8      0.6      
+  2.39     1.91     1.43     

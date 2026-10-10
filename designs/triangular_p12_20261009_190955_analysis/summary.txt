@@ -1,0 +1,83 @@
+Design: (unnamed)   layout triangular, span 220, height 22, width 13, panels 12
+orientation bottom, K 1, required FS 1.5, load 8 kg per condition
+  chord x36  rect tube 4.0x4.0, wall 0.80
+  web   x50  tube Ø3.0, wall 0.80
+  brace x25  tube Ø2.0, wall 0.50
+
+Model: triangular_n12_h22_d13
+  nodes: 39   members: 111   components: 1
+  bounding box [mm]: x 0.0..220.0, y -6.5..6.5, z 0.0..22.0
+  member length [mm]: min 13.00  max 29.37  total 2399.9
+  DOFs: 117
+  ideal member mass: 18.58 g (PLA (generic placeholder))
+  validation: 0 errors, 0 warnings
+
+Result: Condition C
+  max tension     : member  76     +81.75 N
+  max compression : member  77    -196.20 N
+  near-zero members: 50 of 111
+  max downward uz : node  19    -1.8736 mm
+  max lateral |uy|: node  22   -0.05897 mm
+  sum of reactions Rz: 78.4800 N
+  equilibrium residuals: force 3.12e-12 N, moment 3.56e-10 N*mm
+  stiffness ratio lambda_min/lambda_max: 8.80e-06
+
+Failure check: Condition C (bottom, K=1.0)
+  minimum FS 2.21 at member 77 (buckling)
+  members below FS 1.5: 0 of 111
+  governing modes: buckling: 23, tension: 38
+
+Condition C | orientation: bottom | K = 1.0 | required FS = 1.5
+  id     F[N]   sigma   KL/r       state     FS           governing  status
+  77  -196.20  -19.16   13.6 compression   2.21            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  71  -196.20  -19.16   13.6 compression   2.21            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  76    81.75    7.98   13.6     tension   3.26             tension  ok
+  82    81.75    7.98   13.6     tension   3.26             tension  ok
+  70    81.75    7.98   13.6     tension   3.26             tension  ok
+  64    81.75    7.98   13.6     tension   3.26             tension  ok
+  69    81.75    7.98   13.6     tension   3.26             tension  ok
+  63    81.75    7.98   13.6     tension   3.26             tension  ok
+  81    81.75    7.98   13.6     tension   3.26             tension  ok
+  75    81.75    7.98   13.6     tension   3.26             tension  ok
+
+Result: Condition D
+  max tension     : member  70     +98.10 N
+  max compression : member  77    -196.20 N
+  near-zero members: 57 of 111
+  max downward uz : node  19    -2.4146 mm
+  max lateral |uy|: node  28   -0.07077 mm
+  sum of reactions Rz: 156.9600 N
+  equilibrium residuals: force 4.45e-12 N, moment 4.93e-10 N*mm
+  stiffness ratio lambda_min/lambda_max: 8.80e-06
+
+Failure check: Condition D (bottom, K=1.0)
+  minimum FS 2.20 at member 28 (interlayer tension)
+  members below FS 1.5: 0 of 111
+  governing modes: buckling: 20, interlayer tension: 4, tension: 30
+
+Condition D | orientation: bottom | K = 1.0 | required FS = 1.5
+  id     F[N]   sigma   KL/r       state     FS           governing  status
+  28    40.92    7.40   27.7     tension   2.20  interlayer tension  ok
+  29    40.92    7.40   27.7     tension   2.20  interlayer tension  ok
+  11    40.92    7.40   27.7     tension   2.20  interlayer tension  ok
+  10    40.92    7.40   27.7     tension   2.20  interlayer tension  ok
+  77  -196.20  -19.16   13.6 compression   2.21            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  71  -196.20  -19.16   13.6 compression   2.21            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  59  -196.20  -19.16   13.6 compression   2.21            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  89  -196.20  -19.16   13.6 compression   2.21            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  65  -196.20  -19.16   13.6 compression   2.21            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  83  -196.20  -19.16   13.6 compression   2.21            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+
+PASS: min FS = 2.20 (required 1.5) member 28, interlayer tension, Condition D; 0 member(s) below requirement
+
+Load margin: because the model is linear, FS scales as 1/load, so this design meets FS 1.5 up to about 11.8 kg per load point (analysed: 8 kg).
+
+Sensitivity of minimum FS (over C and D):
+  print orientation x effective-length factor K
+  orientation K=0.7    K=1      K=1.5    
+  bottom      2.20     2.20     1.29     
+  top         2.20     2.20     1.29     
+  side        2.28     2.21     1.29     
+  strength knockdown (all strengths x factor)
+  1        0.8      0.6      
+  2.20     1.76     1.32     
