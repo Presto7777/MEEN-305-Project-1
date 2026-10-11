@@ -1,0 +1,83 @@
+Design: (unnamed)   layout warren, span 220, height 31, width 16, panels 8
+orientation bottom, K 1, required FS 1.5, load 8 kg per condition
+  chord x30  rect tube 2.8x2.8, wall 0.80
+  web   x36  rect tube 2.5x2.5, wall 0.60
+  brace x32  rect tube 1.5x1.5, wall 0.60
+
+Model: warren_n8_h31_d16
+  nodes: 34   members: 98   components: 1
+  bounding box [mm]: x 0.0..220.0, y -8.0..8.0, z 0.0..31.0
+  member length [mm]: min 16.00  max 37.50  total 2809.4
+  DOFs: 102
+  ideal member mass: 15.54 g (PLA (generic placeholder))
+  validation: 0 errors, 0 warnings
+
+Result: Condition C
+  max tension     : member   4     +60.93 N
+  max compression : member  42     -69.61 N
+  near-zero members: 13 of 98
+  max downward uz : node   4    -1.1948 mm
+  max lateral |uy|: node  12   +0.07590 mm
+  sum of reactions Rz: 78.4800 N
+  equilibrium residuals: force 9.82e-13 N, moment 7.13e-11 N*mm
+  stiffness ratio lambda_min/lambda_max: 2.04e-05
+
+Failure check: Condition C (bottom, K=1.0)
+  minimum FS 2.73 at member 4 (tension)
+  members below FS 1.5: 0 of 98
+  governing modes: buckling: 41, interlayer tension: 16, tension: 28
+
+Condition C | orientation: bottom | K = 1.0 | required FS = 1.5
+  id     F[N]   sigma   KL/r       state     FS           governing  status
+   4    60.93    9.52   31.3     tension   2.73             tension  ok
+  35    60.93    9.52   31.3     tension   2.73             tension  ok
+  34    60.91    9.52   31.3     tension   2.73             tension  ok
+   3    60.90    9.52   31.3     tension   2.73             tension  ok
+  42   -69.61  -10.88   31.3 compression   2.82            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  11   -69.61  -10.88   31.3 compression   2.82            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  41   -52.23   -8.16   31.3 compression   3.76            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  12   -52.23   -8.16   31.3 compression   3.76            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  43   -52.22   -8.16   31.3 compression   3.76            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  10   -52.22   -8.16   31.3 compression   3.76            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+
+Result: Condition D
+  max tension     : member  33     +69.65 N
+  max compression : member  12     -69.65 N
+  near-zero members: 13 of 98
+  max downward uz : node   4    -1.4787 mm
+  max lateral |uy|: node  14   +0.08133 mm
+  sum of reactions Rz: 156.9600 N
+  equilibrium residuals: force 1.40e-12 N, moment 1.03e-10 N*mm
+  stiffness ratio lambda_min/lambda_max: 2.04e-05
+
+Failure check: Condition D (bottom, K=1.0)
+  minimum FS 1.90 at member 29 (interlayer tension)
+  members below FS 1.5: 0 of 98
+  governing modes: buckling: 41, interlayer tension: 16, tension: 28
+
+Condition D | orientation: bottom | K = 1.0 | required FS = 1.5
+  id     F[N]   sigma   KL/r       state     FS           governing  status
+  29    42.98    9.43   41.7     tension   1.90  interlayer tension  ok
+  49    42.98    9.43   41.7     tension   1.90  interlayer tension  ok
+  47    42.98    9.43   41.7     tension   1.90  interlayer tension  ok
+  27    42.98    9.43   41.7     tension   1.90  interlayer tension  ok
+  60    42.87    9.40   41.7     tension   1.91  interlayer tension  ok
+  58    42.87    9.40   41.7     tension   1.91  interlayer tension  ok
+  18    42.87    9.40   41.7     tension   1.91  interlayer tension  ok
+  16    42.87    9.40   41.7     tension   1.91  interlayer tension  ok
+  48   -42.98   -9.43   41.7 compression   2.11            buckling  ok
+  28   -42.98   -9.43   41.7 compression   2.11            buckling  ok
+
+PASS: min FS = 1.90 (required 1.5) member 29, interlayer tension, Condition D; 0 member(s) below requirement
+
+Load margin: because the model is linear, FS scales as 1/load, so this design meets FS 1.5 up to about 10.2 kg per load point (analysed: 8 kg).
+
+Sensitivity of minimum FS (over C and D):
+  print orientation x effective-length factor K
+  orientation K=0.7    K=1      K=1.5    
+  bottom      1.90     1.90     0.94     
+  top         1.90     1.90     0.94     
+  side        2.39     2.11     0.94     
+  strength knockdown (all strengths x factor)
+  1        0.8      0.6      
+  1.90     1.52     1.14     

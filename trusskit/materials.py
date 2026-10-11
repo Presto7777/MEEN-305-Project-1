@@ -12,8 +12,8 @@ class Strength:
     """Strength allowables [MPa].  'In-layer' = load path runs along the filament
     (member axis lying in the layer plane); 'interlayer' = across layer bonds."""
     tensile_inplane: float = 26.0
-    compressive_inplane: float = 45.0
-    interlayer_tension: float = 15.0   # ~50% of in-layer: typical FDM PLA knockdown
+    compressive_inplane: float = 65.0
+    interlayer_tension: float = 22.0   
     interlayer_shear: float = 20.0
     knockdown: float = 1.0             # extra global factor (<1) for defects, joints, etc.
 
@@ -39,4 +39,4 @@ class Material:
             raise ValueError("E and density must be positive")
 
 
-PLA_PLACEHOLDER = Material(name="PLA (generic placeholder)", E=3500.0, density=1.24e-3)
+PLA_PLACEHOLDER = Material(name="PLA (generic placeholder)", E=3600.0, density=1.24e-3)

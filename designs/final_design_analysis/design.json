@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "name": "",
+  "notes": "",
+  "layout": "warren",
+  "span": 220.0,
+  "height": 31.0,
+  "depth": 16.0,
+  "panels": 8,
+  "orientation": "side",
+  "K": 1.0,
+  "fs_required": 1.5,
+  "mass_kg": 8.0,
+  "sections": {
+    "chord": {
+      "kind": "hollow rectangular",
+      "params": [
+        2.5,
+        2.5,
+        0.8
+      ]
+    },
+    "web": {
+      "kind": "hollow rectangular",
+      "params": [
+        2.3,
+        2.3,
+        0.8
+      ]
+    },
+    "brace": {
+      "kind": "rectangular",
+      "params": [
+        1.5,
+        1.5
+      ]
+    }
+  },
+  "material": {
+    "name": "PLA (generic placeholder)",
+    "E": 3500.0,
+    "density": 0.00124,
+    "strength": {
+      "tensile_inplane": 26.0,
+      "compressive_inplane": 65.0,
+      "interlayer_tension": 22.0,
+      "interlayer_shear": 20.0,
+      "knockdown": 1.0
+    }
+  },
+  "results": {
+    "mass_g": 15.00735891325907,
+    "min_fs": 1.6157325192488543,
+    "passes": true,
+    "governing_member": 28,
+    "governing_mode": "buckling",
+    "governing_case": "Condition D",
+    "n_members_below_required": 0,
+    "max_uz_mm": {
+      "C": 1.3196764738978382,
+      "D": 1.6580763849546878
+    },
+    "max_uy_mm": {
+      "C": 0.0886981484329175,
+      "D": 0.09378339902741442
+    },
+    "n_nodes": 34,
+    "n_members": 98,
+    "group_counts": {
+      "chord": 30,
+      "web": 36,
+      "brace": 32
+    },
+    "section_desc": {
+      "chord": "rect tube 2.5x2.5, wall 0.80",
+      "web": "rect tube 2.3x2.3, wall 0.80",
+      "brace": "rect 1.5x1.5"
+    }
+  }
+}

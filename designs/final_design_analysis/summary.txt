@@ -1,0 +1,83 @@
+Design: (unnamed)   layout warren, span 220, height 31, width 16, panels 8
+orientation side, K 1, required FS 1.5, load 8 kg per condition
+  chord x30  rect tube 2.5x2.5, wall 0.80
+  web   x36  rect tube 2.3x2.3, wall 0.80
+  brace x32  rect 1.5x1.5
+
+Model: warren_n8_h31_d16
+  nodes: 34   members: 98   components: 1
+  bounding box [mm]: x 0.0..220.0, y -8.0..8.0, z 0.0..31.0
+  member length [mm]: min 16.00  max 37.50  total 2809.4
+  DOFs: 102
+  ideal member mass: 15.01 g (PLA (generic placeholder))
+  validation: 0 errors, 0 warnings
+
+Result: Condition C
+  max tension     : member   4     +60.93 N
+  max compression : member  11     -69.61 N
+  near-zero members: 13 of 98
+  max downward uz : node   4    -1.3197 mm
+  max lateral |uy|: node  12   +0.08870 mm
+  sum of reactions Rz: 78.4800 N
+  equilibrium residuals: force 1.64e-12 N, moment 5.59e-11 N*mm
+  stiffness ratio lambda_min/lambda_max: 1.99e-05
+
+Failure check: Condition C (side, K=1.0)
+  minimum FS 2.10 at member 11 (buckling)
+  members below FS 1.5: 0 of 98
+  governing modes: buckling: 41, interlayer tension: 4, tension: 40
+
+Condition C | orientation: side | K = 1.0 | required FS = 1.5
+  id     F[N]   sigma   KL/r       state     FS           governing  status
+  11   -69.61  -12.80   35.9 compression   2.10            buckling  ok
+  42   -69.61  -12.80   35.9 compression   2.10            buckling  ok
+   4    60.93   11.20   35.9     tension   2.32             tension  ok
+  35    60.93   11.20   35.9     tension   2.32             tension  ok
+  34    60.91   11.20   35.9     tension   2.32             tension  ok
+   3    60.90   11.20   35.9     tension   2.32             tension  ok
+  12   -52.23   -9.60   35.9 compression   2.80            buckling  ok
+  41   -52.23   -9.60   35.9 compression   2.80            buckling  ok
+  10   -52.22   -9.60   35.9 compression   2.80            buckling  ok
+  43   -52.22   -9.60   35.9 compression   2.80            buckling  ok
+
+Result: Condition D
+  max tension     : member  33     +69.65 N
+  max compression : member  12     -69.65 N
+  near-zero members: 13 of 98
+  max downward uz : node   4    -1.6581 mm
+  max lateral |uy|: node  14   +0.09378 mm
+  sum of reactions Rz: 156.9600 N
+  equilibrium residuals: force 2.18e-12 N, moment 4.26e-11 N*mm
+  stiffness ratio lambda_min/lambda_max: 1.99e-05
+
+Failure check: Condition D (side, K=1.0)
+  minimum FS 1.62 at member 28 (buckling)
+  members below FS 1.5: 0 of 98
+  governing modes: buckling: 41, interlayer tension: 4, tension: 40
+
+Condition D | orientation: side | K = 1.0 | required FS = 1.5
+  id     F[N]   sigma   KL/r       state     FS           governing  status
+  28   -42.98   -8.95   48.9 compression   1.62            buckling  ok
+  48   -42.98   -8.95   48.9 compression   1.62            buckling  ok
+  17   -42.87   -8.93   48.9 compression   1.62            buckling  ok
+  59   -42.87   -8.93   48.9 compression   1.62            buckling  ok
+  33    69.65   12.80   35.9     tension   2.03             tension  ok
+   4    69.65   12.80   35.9     tension   2.03             tension  ok
+  35    69.64   12.80   35.9     tension   2.03             tension  ok
+   2    69.63   12.80   35.9     tension   2.03             tension  ok
+   5    69.60   12.79   35.9     tension   2.03             tension  ok
+  34    69.60   12.79   35.9     tension   2.03             tension  ok
+
+PASS: min FS = 1.62 (required 1.5) member 28, buckling, Condition D; 0 member(s) below requirement
+
+Load margin: because the model is linear, FS scales as 1/load, so this design meets FS 1.5 up to about 8.6 kg per load point (analysed: 8 kg).
+
+Sensitivity of minimum FS (over C and D):
+  print orientation x effective-length factor K
+  orientation K=0.7    K=1      K=1.5    
+  bottom      2.03     1.62     0.72     
+  top         2.03     1.62     0.72     
+  side        2.03     1.62     0.72     
+  strength knockdown (all strengths x factor)
+  1        0.8      0.6      
+  1.62     1.62     1.22     

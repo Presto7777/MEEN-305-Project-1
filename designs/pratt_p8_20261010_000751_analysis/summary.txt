@@ -1,0 +1,83 @@
+Design: (unnamed)   layout pratt, span 220, height 31, width 15, panels 8
+orientation bottom, K 1, required FS 1.5, load 8 kg per condition
+  chord x32  rect tube 2.5x2.5, wall 0.80
+  web   x36  rect tube 2.3x2.3, wall 0.60
+  brace x34  rect tube 2.0x2.0, wall 0.50
+
+Model: pratt_n8_h31_d15
+  nodes: 36   members: 102   components: 1
+  bounding box [mm]: x 0.0..220.0, y -7.5..7.5, z 0.0..31.0
+  member length [mm]: min 15.00  max 41.44  total 2941.1
+  DOFs: 108
+  ideal member mass: 15.33 g (PLA (generic placeholder))
+  validation: 0 errors, 0 warnings
+
+Result: Condition C
+  max tension     : member   4     +52.21 N
+  max compression : member  11     -69.62 N
+  near-zero members: 42 of 102
+  max downward uz : node   4    -1.5585 mm
+  max lateral |uy|: node  14   +0.18020 mm
+  sum of reactions Rz: 78.4800 N
+  equilibrium residuals: force 7.67e-13 N, moment 9.01e-11 N*mm
+  stiffness ratio lambda_min/lambda_max: 1.34e-05
+
+Failure check: Condition C (bottom, K=1.0)
+  minimum FS 2.04 at member 11 (buckling)
+  members below FS 1.5: 0 of 102
+  governing modes: buckling: 32, tension: 28
+
+Condition C | orientation: bottom | K = 1.0 | required FS = 1.5
+  id     F[N]   sigma   KL/r       state     FS           governing  status
+  11   -69.62  -12.80   35.9 compression   2.04            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  12   -69.62  -12.80   35.9 compression   2.04            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  45   -69.62  -12.80   35.9 compression   2.04            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  44   -69.62  -12.80   35.9 compression   2.04            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+   4    52.21    9.60   35.9     tension   2.71             tension  ok
+   3    52.21    9.60   35.9     tension   2.71             tension  ok
+  36    52.21    9.60   35.9     tension   2.71             tension  ok
+  37    52.21    9.60   35.9     tension   2.71             tension  ok
+  13   -52.21   -9.60   35.9 compression   2.73            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+  10   -52.21   -9.60   35.9 compression   2.73            buckling  ok  [stocky: Johnson used (Euler unconservative)]
+
+Result: Condition D
+  max tension     : member   5     +69.62 N
+  max compression : member  13     -69.62 N
+  near-zero members: 58 of 102
+  max downward uz : node   4    -1.9153 mm
+  max lateral |uy|: node  16   +0.26822 mm
+  sum of reactions Rz: 156.9600 N
+  equilibrium residuals: force 1.13e-12 N, moment 1.25e-10 N*mm
+  stiffness ratio lambda_min/lambda_max: 1.34e-05
+
+Failure check: Condition D (bottom, K=1.0)
+  minimum FS 2.02 at member 58 (tension)
+  members below FS 1.5: 0 of 102
+  governing modes: buckling: 24, tension: 20
+
+Condition D | orientation: bottom | K = 1.0 | required FS = 1.5
+  id     F[N]   sigma   KL/r       state     FS           governing  status
+  58    52.45   12.86   56.3     tension   2.02             tension  ok
+  59    52.45   12.86   56.3     tension   2.02             tension  ok
+  64    52.45   12.86   56.3     tension   2.02             tension  ok
+  26    52.45   12.86   56.3     tension   2.02             tension  ok
+  65    52.45   12.86   56.3     tension   2.02             tension  ok
+  31    52.45   12.86   56.3     tension   2.02             tension  ok
+  32    52.45   12.86   56.3     tension   2.02             tension  ok
+  25    52.45   12.86   56.3     tension   2.02             tension  ok
+  49   -39.24   -9.62   42.1 compression   2.02            buckling  ok
+  57   -39.24   -9.62   42.1 compression   2.02            buckling  ok
+
+PASS: min FS = 2.02 (required 1.5) member 58, tension, Condition D; 0 member(s) below requirement
+
+Load margin: because the model is linear, FS scales as 1/load, so this design meets FS 1.5 up to about 10.8 kg per load point (analysed: 8 kg).
+
+Sensitivity of minimum FS (over C and D):
+  print orientation x effective-length factor K
+  orientation K=0.7    K=1      K=1.5    
+  bottom      2.02     2.02     0.90     
+  top         2.02     2.02     0.90     
+  side        2.02     2.02     0.90     
+  strength knockdown (all strengths x factor)
+  1        0.8      0.6      
+  2.02     1.62     1.21     
